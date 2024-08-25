@@ -1,0 +1,350 @@
+#Libraries
+from PIL import Image
+import requests
+import streamlit as st
+from streamlit_lottie import st_lottie
+import os
+from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+
+#Generate lottie animations
+
+def load_lottieurl(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+# Use local CSS for Style
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+local_css("style/request.css")
+
+# ---- LOAD ASSETS ----
+encrypting_animation = load_lottieurl("https://lottie.host/714eb251-d1cd-459b-886e-302ae875cb36/QVtWA9X6xM.json")
+encrypting_animationk = load_lottieurl("https://lottie.host/1d5b42c1-88a4-4d30-aa4f-c2ab49afbbda/OI8kkCN7Rr.json")
+
+# Set background image
+BACKGROUND_IMAGE_FILENAME = "back.jpg"  # Change this to your background image filename
+
+def set_background_image(image_back):
+    # CSS to set background image
+    background_image_style = f"""
+    <style>
+    .stApp {{
+        background-image: path("{image_back}");
+        background-size: cover;
+    }}
+    </style>
+    """
+    st.markdown(background_image_style, unsafe_allow_html=True)
+
+# Set background image
+set_background_image(BACKGROUND_IMAGE_FILENAME)
+
+
+# ---- HEADER SECTION ----
+with st.container():
+    st.title("CipherVault")
+    st.write("IN THIS PAGE YOU CAN 'ENCRYPT' OR 'DECRYPT' ANY TYPE OF FILES")
+    st.write("[<College Official Site>](https://uem.edu.in/uem-kolkata/)")
+
+# ---- WHAT I DO ----
+with st.container():
+    st.write("---")
+    left_column, right_column = st.columns(2)
+    with left_column:
+        st.header("Purpose for creating a Encryption-Decryption page")
+        st.write("##")
+        st.write(
+            """
+        
+            - An encryption-decryption page serves to enhance security, protect sensitive information, and enable secure communication and collaboration.
+              It facilitates secure transmission, safeguards data, ensures compliance with regulations, educates users, and supports collaborative work.
+
+
+            """
+        )
+    with right_column: 
+              st_lottie(encrypting_animationk, height=300, key="encrypt-decrypt")         
+
+#Function of ALgorithms for Fernet,AES,DES,3DES,Blowfish
+
+KEY_FILE = "Secret.key"
+
+def generate_key():
+    key = Fernet.generate_key()
+    with open(KEY_FILE, "wb") as key_file:
+        key_file.write(key)
+
+def load_key():
+    if os.path.exists(KEY_FILE):
+        with open(KEY_FILE, "rb") as key_file:
+            return key_file.read()
+    else:
+        st.warning("Key file not found. Generating a key.")
+        generate_key()
+        return load_key()
+
+def encrypt(filename, key):
+    f = Fernet(key)
+    with open(filename, "rb") as file:
+        file_data = file.read()
+        encrypted_data = f.encrypt(file_data)
+    with open(filename, "wb") as file:
+        file.write(encrypted_data)
+
+def decrypt(filename, key):
+    f = Fernet(key)
+    with open(filename, "rb") as file:
+        encrypted_data = file.read()
+        try:
+            decrypted_data = f.decrypt(encrypted_data)
+        except InvalidToken:
+            st.error("Invalid key")
+            return
+    with open(filename, "wb") as file:
+        file.write(decrypted_data)
+
+def encrypt_aes(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = os.urandom(16)  # Generate a random IV
+    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    encrypted_data = encryptor.update(file_data) + encryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(iv + encrypted_data)
+
+def decrypt_aes(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = file_data[:16]
+    encrypted_data = file_data[16:]
+
+    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(decrypted_data)
+
+def encrypt_des(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = os.urandom(8)  # Generate a random IV
+    cipher = Cipher(algorithms.TripleDES(key), modes.CFB(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    encrypted_data = encryptor.update(file_data) + encryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(iv + encrypted_data)
+
+def decrypt_des(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = file_data[:8]
+    encrypted_data = file_data[8:]
+
+    cipher = Cipher(algorithms.TripleDES(key), modes.CFB(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(decrypted_data)
+
+def encrypt_blowfish(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = os.urandom(8)  # Generate a random IV
+    cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    encrypted_data = encryptor.update(file_data) + encryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(iv + encrypted_data)
+
+def decrypt_blowfish(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = file_data[:8]
+    encrypted_data = file_data[8:]
+
+    cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(decrypted_data)
+
+def encrypt_3des(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = os.urandom(8)  # Generate a random IV
+    cipher = Cipher(algorithms.TripleDES(key), modes.CFB(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    encrypted_data = encryptor.update(file_data) + encryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(iv + encrypted_data)
+
+def decrypt_3des(filename, key):
+    with open(filename, "rb") as file:
+        file_data = file.read()
+
+    iv = file_data[:8]
+    encrypted_data = file_data[8:]
+
+    cipher = Cipher(algorithms.TripleDES(key), modes.CFB(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+
+    with open(filename, "wb") as file:
+        file.write(decrypted_data)
+
+
+def main():
+    st.title("File Encryption and Decryption")
+
+    choice = st.sidebar.radio("Choose an option:", ["Encrypt", "Decrypt"])
+
+    if choice == "Encrypt":
+        encryption_method = st.selectbox("Select encryption method:", ["Fernet", "AES", "DES", "3DES", "Blowfish"])
+        if encryption_method == "Fernet":
+            filename = st.file_uploader("Upload a file to encrypt")
+            if filename is not None:
+                key = load_key()
+                encrypt(filename.name, key)
+                st.success("File encrypted successfully!")
+        elif encryption_method == "AES":
+            filename = st.file_uploader("Upload a file to encrypt")
+            if filename is not None:
+                key = st.text_input("Enter AES key (16, 24, or 32 bytes):")
+                if key:
+                    encrypt_aes(filename.name, key.encode())
+                    st.success("File encrypted successfully!")
+        elif encryption_method == "DES":
+            filename = st.file_uploader("Upload a file to encrypt")
+            if filename is not None:
+                key = st.text_input("Enter DES key (8 bytes):")
+                if key:
+                    encrypt_des(filename.name, key.encode())
+                    st.success("File encrypted successfully!")
+        elif encryption_method == "3DES":
+            filename = st.file_uploader("Upload a file to encrypt")
+            if filename is not None:
+                key = st.text_input("Enter 3DES key (16 or 24 bytes):")
+                if key:
+                    encrypt_3des(filename.name, key.encode())
+                    st.success("File encrypted successfully!")
+        elif encryption_method == "Blowfish":
+            filename = st.file_uploader("Upload a file to encrypt")
+            if filename is not None:
+                key = st.text_input("Enter Blowfish key (8 to 56 bytes):")
+                if key:
+                    encrypt_blowfish(filename.name, key.encode())
+
+    elif choice == "Decrypt":
+        decryption_method = st.selectbox("Select decryption method:", ["Fernet", "AES", "DES", "3DES", "Blowfish"])
+        if decryption_method == "Fernet":
+            filename = st.file_uploader("Upload an encrypted file to decrypt")
+            if filename is not None:
+                key = load_key()
+                decrypt(filename.name, key)
+                st.success("File decrypted successfully!")
+        elif decryption_method == "AES":
+            filename = st.file_uploader("Upload an encrypted file to decrypt")
+            if filename is not None:
+                key = st.text_input("Enter AES key (16, 24, or 32 bytes):")
+                if key:
+                    decrypt_aes(filename.name, key.encode())
+                    st.success("File decrypted successfully!")
+        elif decryption_method == "DES":
+            filename = st.file_uploader("Upload an encrypted file to decrypt")
+            if filename is not None:
+                key = st.text_input("Enter DES key (8 bytes):")
+                if key:
+                    decrypt_des(filename.name, key.encode())
+                    st.success("File decrypted successfully!")
+        elif decryption_method == "3DES":
+            filename = st.file_uploader("Upload an encrypted file to decrypt")
+            if filename is not None:
+                key = st.text_input("Enter 3DES key (16 or 24 bytes):")
+                if key:
+                    decrypt_3des(filename.name, key.encode())
+                    st.success("File decrypted successfully!")
+        elif decryption_method == "Blowfish":
+            filename = st.file_uploader("Upload an encrypted file to decrypt")
+            if filename is not None:
+                key = st.text_input("Enter Blowfish key (8 to 56 bytes):")
+                if key:
+                    decrypt_blowfish(filename.name, key.encode())
+
+if _name_ == "_main_":
+    main()
+
+
+
+# ---- PROJECTS ----
+with st.container():
+    st.write("---")
+    st.header("My Projects")
+    st.write("##")
+    image_column, text_column = st.columns((1, 2))
+    with image_column:
+        st_lottie(encrypting_animation, height=300, key="encrypt-decrypt2")
+     
+    # Insert image
+    with text_column:
+        st.subheader("How To Use Encryption & Decryption ")
+        st.write(
+            """
+            Learn how to encrypt/decrypt files
+
+            Step 1: Choose encrypt/decrypt option
+
+
+
+
+            Step 2: Drag and drop the file required 
+
+
+
+
+
+            Step 3: Encrypt/Decrypt the file
+            """
+        )
+
+# ---- CONTACT ----
+with st.container():
+    st.write("---")
+    st.header("Get In Touch With Us!")
+    st.write("##")
+
+    # Documention: https://formsubmit.co/ !!! CHANGE EMAIL ADDRESS !!!
+    contact_form = """
+    <form action="https://formsubmit.co/deepsayan476@gmail.com" method="POST">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="text" name="name" placeholder="Your name" required>
+        <input type="email" name="email" zplaceholder="Your email" required>
+        <textarea name="message" placeholder="Your message here" required></textarea>
+        <button type="submit">Send</button>
+    </form>
+    """
+    left_column, right_column = st.columns(2)
+    with left_column:
+        st.markdown(contact_form, unsafe_allow_html=True)
+    with right_column:
+        st.empty()
